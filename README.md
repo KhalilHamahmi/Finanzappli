@@ -1,1 +1,1 @@
-# Finanzappli
+# Finanzappli 📱
