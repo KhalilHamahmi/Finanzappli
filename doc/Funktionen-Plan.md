@@ -32,4 +32,14 @@ Legende:
 >> Funktion, wo man einen leichten ueberblick ueber seine finanzielle Lage im verglich zum Kanton bekommt. 
 >>> Wo: Informationseite 
 
-4) 
+4) Tippsanzeiger
+>> Zeigt Tipps an fuer die Budgetlage bei anomalitischen Budget
+>> Z.b nur 1/3 des lohn soll auf die Miete drauf gehen.
+>>> Wo: Informationsseite & (evtl.) Budgetseite
+
+5) Budget Pie chart
+>> Gibt graphische visualisierung des Budget da.
+>>> Wo: Budgetseite & Informationsseite
+
+
+
