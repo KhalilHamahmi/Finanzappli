@@ -1,3 +1,18 @@
+<script setup>
+import { ref } from 'vue'
+import { supabase } from '../supabase'
+
+const username = ref('')
+const password = ref('')
+
+const handleLogin = async () => {
+  await supabase.auth.signInWithPassword({
+    email: username.value,
+    password: password.value,
+  })
+}
+</script>
+
 <template>
   <div class="login-container">
 
@@ -9,16 +24,16 @@
         Willkommen zurück bei Finanzappli
       </p>
 
-      <form @submit.prevent>
+      <form @submit.prevent="handleLogin">
 
         <div class="input-group">
           <label>Benutzername</label>
-          <input type="text" placeholder="Benutzername eingeben" />
+          <input type="text" v-model="username" placeholder="Benutzername eingeben" />
         </div>
 
         <div class="input-group">
           <label>Passwort</label>
-          <input type="password" placeholder="Passwort eingeben" />
+          <input type="password" v-model="password" placeholder="Passwort eingeben" />
         </div>
 
         <button type="submit">
