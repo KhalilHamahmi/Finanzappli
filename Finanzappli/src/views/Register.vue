@@ -1,3 +1,24 @@
+<script setup>
+import { ref } from 'vue'
+import { supabase } from '../supabase'
+
+const username = ref('')
+const email = ref('')
+const password = ref('')
+
+const handleRegister = async () => {
+  await supabase.auth.signUp({
+    email: email.value,
+    password: password.value,
+    options: {
+      data: {
+        username: username.value
+      }
+    }
+  })
+}
+</script>
+
 <template>
   <div class="register-container">
 
@@ -9,21 +30,21 @@
         Erstelle dein Finanzappli Konto
       </p>
 
-      <form @submit.prevent>
+      <form @submit.prevent="handleRegister">
 
         <div class="input-group">
           <label>Benutzername</label>
-          <input type="text" placeholder="Benutzername eingeben" />
+          <input type="text" v-model="username" placeholder="Benutzername eingeben" />
         </div>
 
         <div class="input-group">
           <label>E-Mail</label>
-          <input type="email" placeholder="E-Mail eingeben" />
+          <input type="email" v-model="email" placeholder="E-Mail eingeben" />
         </div>
 
         <div class="input-group">
           <label>Passwort</label>
-          <input type="password" placeholder="Passwort eingeben" />
+          <input type="password" v-model="password" placeholder="Passwort eingeben" />
         </div>
 
         <button type="submit">
