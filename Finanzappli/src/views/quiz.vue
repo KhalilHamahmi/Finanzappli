@@ -1,3 +1,10 @@
+<script>
+
+
+
+</script>
+
+
 <template>
   <div class="quiz-page">
     <h1>Finanz-Quiz</h1>
