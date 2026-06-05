@@ -3,6 +3,7 @@ import Home from '../src/views/Home.vue'
 import Main from '../src/views/Main.vue'
 import Login from '../src/views/Login.vue'
 import Register from '../src/views/Register.vue'
+import quiz from '../src/views/quiz.vue'
 
 const routes = [
   {
@@ -25,6 +26,11 @@ const routes = [
       name: 'Login',
       component: Login
   },
+  {
+      path: '/quiz',
+      name: 'Quiz',
+      component: quiz
+  }
 ]
 
 const router = createRouter({
