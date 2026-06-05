@@ -137,7 +137,9 @@ function Popup() {
   <div class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
-        
+        <button type="button" class="close-btn" @click="Popup">&times;</button>
+        <button type="button" class="close-btn" @click="Popup">&times;</button>
+        <button type="button" class="close-btn" @click="Popup">&times;</button>
       </div>
     </div>
 
