@@ -9,7 +9,7 @@ export default {
 }
 
 import {supabase} from "../supabase.js";
-import { supabase } from '../supabase'
+
 
 </script>
 <template>
