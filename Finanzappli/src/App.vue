@@ -6,7 +6,7 @@
       <router-link to="/quiz">Quiz</router-link> |
       <router-link to="/login">Login</router-link> |
       <router-link to="/register">Registrieren</router-link>|
-      <router-link to="/grossregionvergleich">GrossRegionenvergleich</router-link>|
+      <router-link to="/grossregionvergleich">GrossRegionenVergleich</router-link>|
     </nav>
     <main style="padding:1em">
       <router-view />
