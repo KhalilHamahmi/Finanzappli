@@ -3,6 +3,7 @@
     <nav style="padding:1em;background:#f5f5f5">
       <router-link to="/">Home</router-link> |
       <router-link to="/main">Main</router-link> |
+      <router-link to="/quiz">Quiz</router-link> |
       <router-link to="/login">Login</router-link> |
       <router-link to="/register">Registrieren</router-link>
     </nav>
