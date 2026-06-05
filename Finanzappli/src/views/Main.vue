@@ -1,78 +1,115 @@
-<script>
-export default {
-  methods: {
-    Popup() {
-      const modal = document.getElementById("myPopup");
-      if (modal) modal.classList.toggle("show");
-    }
-  }
+﻿<script setup>
+import { computed, reactive } from "vue";
+
+const budget = reactive({
+  income: 5200,
+  categories: [
+    { label: "Essen", amount: 780, color: "#22c55e" },
+    { label: "Transport", amount: 260, color: "#3b82f6" },
+    { label: "Miete", amount: 1600, color: "#f59e0b" },
+    { label: "Shopping", amount: 310, color: "#ef4444" },
+    { label: "Freizeit", amount: 250, color: "#8b5cf6" },
+    { label: "Sparen", amount: 620, color: "#06b6d4" }
+  ]
+});
+
+const totalExpenses = computed(() => budget.categories.reduce((sum, item) => sum + item.amount, 0));
+const remainingAmount = computed(() => budget.income - totalExpenses.value);
+const remainingPercent = computed(() => {
+  if (budget.income === 0) return 0;
+  return Math.max(0, Math.min(100, (remainingAmount.value / budget.income) * 100));
+});
+
+const categorySlices = computed(() => {
+  const total = totalExpenses.value || 1;
+  let current = 0;
+  return budget.categories.map((item) => {
+    const percent = (item.amount / total) * 100;
+    const slice = {
+      ...item,
+      percent: Math.round(percent * 10) / 10,
+      start: current
+    };
+    current += percent;
+    return slice;
+  });
+});
+
+const pieStyle = computed(() => ({
+  backgroundImage: `conic-gradient(${categorySlices.value
+    .map((slice) => `${slice.color} ${slice.start}% ${slice.start + slice.percent}%`)
+    .join(", ")})`
+}));
+
+const budgetStyle = computed(() => {
+  const spentPercent = Math.min(100, Math.round((totalExpenses.value / (budget.income || 1)) * 10000) / 100);
+  const usedColor = remainingAmount.value < 0 ? "#ef4444" : "#3b82f6";
+  const freeColor = remainingAmount.value < 0 ? "#9ca3af" : "#22c55e";
+  return {
+    backgroundImage: `conic-gradient(${usedColor} 0 ${spentPercent}%, ${freeColor} ${spentPercent}% 100%)`
+  };
+});
+
+const formatCHF = (value) =>
+  new Intl.NumberFormat("de-CH", {
+    style: "currency",
+    currency: "CHF",
+    maximumFractionDigits: 2
+  }).format(value);
+
+function Popup() {
+  const modal = document.getElementById("myPopup");
+  if (modal) modal.classList.toggle("show");
 }
-
-import {supabase} from "../supabase.js";
-
-
 </script>
+
 <template>
   <div class="dashboard-container">
-
     <h1>Finanzübersicht</h1>
 
     <p class="subtitle">
-      So Ville prozent hast du schon in diesem Monat für disses Kategorie ausgegeben.
-   </p>
-    Todo: du solte die daten von der datenbank holen und in die diagramm einfügen, damit es dynamisch ist.
-    und die kategorien sollten auch von der datenbank kommen und nicht statisch sein.
+      Hier siehst du, wie viel Prozent deiner Gesamtausgaben auf jede Kategorie entfallen und wie viel vom Budget noch übrig ist.
+    </p>
 
-    <div class="simple-bar-chart">
+    <section class="chart-grid">
+      <article class="chart-card">
+        <h2>Ausgaben nach Kategorie</h2>
+        <div class="pie-chart" :style="pieStyle"></div>
+        <div class="chart-legend">
+          <div v-for="item in categorySlices" :key="item.label" class="legend-row">
+            <span class="legend-color" :style="{ background: item.color }"></span>
+            <span class="legend-label">{{ item.label }}</span>
+            <span class="legend-value">{{ item.percent }}%</span>
+          </div>
+        </div>
+      </article>
 
-      <div class="item" style="--clr: #22c55e; --val: 100">
-        <div class="label">Essen</div>
-        <div class="value">70%</div>
-      </div>
+      <article class="chart-card budget-card">
+        <h2>Verbleibendes Budget</h2>
+        <div class="donut-chart" :style="budgetStyle">
+          <div class="donut-center">
+            <strong>{{ remainingAmount.value >= 0 ? formatCHF(remainingAmount.value) : '-' + formatCHF(Math.abs(remainingAmount.value)) }}</strong>
+            <span>{{ remainingAmount.value >= 0 ? 'noch übrig' : 'überzogen' }}</span>
+          </div>
+        </div>
+        <div class="budget-summary">
+          <p>Gesamteinnahmen: <strong>{{ formatCHF(budget.income) }}</strong></p>
+          <p>Gesamtausgaben: <strong>{{ formatCHF(totalExpenses) }}</strong></p>
+          <p>Restbudget: <strong>{{ Math.round(remainingPercent.value) }}%</strong></p>
+        </div>
+      </article>
+    </section>
 
-      <div class="item" style="--clr: #3b82f6; --val: 45">
-        <div class="label">Transport</div>
-        <div class="value">45%</div>
-      </div>
-
-      <div class="item" style="--clr: #f59e0b; --val: 85">
-        <div class="label">Miete</div>
-        <div class="value">85%</div>
-      </div>
-
-      <div class="item" style="--clr: #ef4444; --val: 30">
-        <div class="label">Shopping</div>
-        <div class="value">30%</div>
-      </div>
-
-      <div class="item" style="--clr: #8b5cf6; --val: 20">
-        <div class="label">Freizeit</div>
-        <div class="value">20%</div>
-      </div>
-
-      <div class="item" style="--clr: #06b6d4; --val: 60">
-        <div class="label">Sparen</div>
-        <div class="value">60%</div>
-      </div>
-
-      
-
-    </div>
-    
-    //Todo: du solte die daten von der datenbank holen und in die diagramm einfügen, damit es dynamisch ist.
-  <button class="start-btn" @click="Popup()">
-        Transaktionen Hinzufügen
-  </button>
-  
-</div>
+    <button class="start-btn" @click="Popup">Transaktion hinzufügen</button>
+  </div>
 
   <div class="modal-overlay" id="myPopup">
     <div class="modal-content" @click.stop>
       <div class="modal-header">
         <h2>Neue Transaktion</h2>
-        <button class="close-btn" @click="Popup()">&times;</button>
+        <button class="close-btn" @click="Popup">&times;</button>
       </div>
-      
+
       <form @submit.prevent class="transaction-form">
         <div class="form-group">
           <label for="kategorie">Kategorie</label>
@@ -90,13 +127,21 @@ import {supabase} from "../supabase.js";
         </div>
 
         <div class="form-actions">
-          <button type="button" class="btn-cancel" @click="Popup()">Abbrechen</button>
+          <button type="button" class="btn-cancel" @click="Popup">Abbrechen</button>
           <button type="submit" class="btn-submit">Hinzufügen</button>
         </div>
       </form>
     </div>
   </div>
 
+  <div class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close-btn" @click="Popup">&times;</button>
+      </div>
+    </div>
+
+  </div>
 </template>
 
 <style scoped>
@@ -116,98 +161,137 @@ h1 {
 .subtitle {
   text-align: center;
   color: #6b7280;
-  margin-bottom: 50px;
+  margin-bottom: 40px;
 }
 
-.simple-bar-chart {
-  --line-count: 10;
-  --line-color: #9ca3af;
-  --line-opacity: 0.25;
-  --item-gap: 2%;
-  --item-default-color: #111827;
-
-  max-width: 900px;
-  margin: auto;
-
-  height: 20rem;
+.chart-grid {
   display: grid;
-  grid-auto-flow: column;
-  gap: var(--item-gap);
-  align-items: end;
-  padding-inline: var(--item-gap);
+  gap: 24px;
+  max-width: 1100px;
+  margin: 0 auto 30px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
 
-  --padding-block: 2rem;
-  padding-block: var(--padding-block);
-
-  position: relative;
-  isolation: isolate;
-
+.chart-card {
   background: white;
-  border-radius: 20px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
 }
 
-.simple-bar-chart::after {
-  content: "";
-  position: absolute;
-  inset: var(--padding-block) 0;
-  z-index: -1;
-
-  --line-width: 1px;
-  --line-spacing: calc(100% / var(--line-count));
-
-  background-image: repeating-linear-gradient(
-    to top,
-    transparent 0 calc(var(--line-spacing) - var(--line-width)),
-    var(--line-color) 0 var(--line-spacing)
-  );
-
-  box-shadow: 0 var(--line-width) 0 var(--line-color);
-  opacity: var(--line-opacity);
+.chart-card h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #111827;
+  margin-bottom: 24px;
 }
 
-.simple-bar-chart > .item {
-  height: calc(1% * var(--val));
-  background-color: var(--clr, var(--item-default-color));
+.pie-chart,
+.donut-chart {
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  margin: 0 auto 24px auto;
+  box-shadow: inset 0 0 0 10px rgba(255, 255, 255, 0.9);
+  background-image: conic-gradient(#3b82f6 0 100%);
+}
+
+.donut-chart {
   position: relative;
-  border-radius: 12px 12px 0 0;
-  animation: item-height 1s ease forwards;
 }
 
-@keyframes item-height {
-  from {
-    height: 0;
-  }
-}
-
-.simple-bar-chart > .item > * {
+.donut-center {
   position: absolute;
+  inset: 50%;
+  transform: translate(-50%, -50%);
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  width: 100%;
+  box-shadow: 0 0 0 12px rgba(255, 255, 255, 0.95);
 }
 
-.simple-bar-chart > .item > .label {
-  inset: 100% 0 auto 0;
-  margin-top: 10px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.simple-bar-chart > .item > .value {
-  inset: auto 0 100% 0;
-  margin-bottom: 8px;
-  font-weight: bold;
+.donut-center strong {
+  display: block;
+  font-size: 1.15rem;
+  margin-bottom: 4px;
   color: #111827;
 }
 
-
-.popup {
-  position: relative;
-  display: inline-block;
-  cursor: pointer;
+.donut-center span {
+  color: #6b7280;
+  font-size: 0.95rem;
 }
 
-/* Modal Styles */
+.chart-legend {
+  display: grid;
+  gap: 12px;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.legend-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-label {
+  color: #374151;
+  flex: 1;
+  margin-left: 10px;
+}
+
+.legend-value {
+  font-weight: 700;
+  color: #111827;
+}
+
+.budget-summary {
+  color: #374151;
+  line-height: 1.8;
+  font-size: 0.95rem;
+}
+
+.budget-summary strong {
+  color: #111827;
+}
+
+.start-btn {
+  padding: 14px 30px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.25);
+  display: block;
+  margin: 0 auto;
+}
+
+.start-btn:hover {
+  background-color: #2563eb;
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+}
+
+.start-btn:active {
+  transform: scale(0.98);
+}
+
 .modal-overlay {
   visibility: hidden;
   position: fixed;
@@ -360,32 +444,6 @@ h1 {
 }
 
 .btn-submit:active {
-  transform: scale(0.98);
-}
-
-.start-btn {
-  padding: 12px 28px;
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-  margin-top: 20px;
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.start-btn:hover {
-  background-color: #2563eb;
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
-}
-
-.start-btn:active {
   transform: scale(0.98);
 }
 </style>
