@@ -7,6 +7,10 @@ export default {
     }
   }
 }
+
+import {supabase} from "../supabase.js";
+
+
 </script>
 <template>
   <div class="dashboard-container">
