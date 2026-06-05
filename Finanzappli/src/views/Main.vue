@@ -1,3 +1,13 @@
+<script>
+export default {
+  methods: {
+    Popup() {
+      const modal = document.getElementById("myPopup");
+      if (modal) modal.classList.toggle("show");
+    }
+  }
+}
+</script>
 <template>
   <div class="dashboard-container">
 
@@ -5,13 +15,13 @@
 
     <p class="subtitle">
       So Ville prozent hast du schon in diesem Monat für disses Kategorie ausgegeben.
-    </p>
-    //Todo: du solte die daten von der datenbank holen und in die diagramm einfügen, damit es dynamisch ist.
+   </p>
+    Todo: du solte die daten von der datenbank holen und in die diagramm einfügen, damit es dynamisch ist.
     und die kategorien sollten auch von der datenbank kommen und nicht statisch sein.
 
     <div class="simple-bar-chart">
 
-      <div class="item" style="--clr: #22c55e; --val: 70">
+      <div class="item" style="--clr: #22c55e; --val: 100">
         <div class="label">Essen</div>
         <div class="value">70%</div>
       </div>
@@ -41,11 +51,48 @@
         <div class="value">60%</div>
       </div>
 
+      
+
     </div>
     
     //Todo: du solte die daten von der datenbank holen und in die diagramm einfügen, damit es dynamisch ist.
+  <button class="start-btn" @click="Popup()">
+        Transaktionen Hinzufügen
+  </button>
+  
+</div>
 
+  <div class="modal-overlay" id="myPopup">
+    <div class="modal-content" @click.stop>
+      <div class="modal-header">
+        <h2>Neue Transaktion</h2>
+        <button class="close-btn" @click="Popup()">&times;</button>
+      </div>
+      
+      <form @submit.prevent class="transaction-form">
+        <div class="form-group">
+          <label for="kategorie">Kategorie</label>
+          <input type="text" id="kategorie" placeholder="z.B. Essen, Transport, Shopping..." />
+        </div>
+
+        <div class="form-group">
+          <label for="betrag">Betrag (CHF)</label>
+          <input type="number" id="betrag" placeholder="0.00" step="0.01" min="0" />
+        </div>
+
+        <div class="form-group">
+          <label for="beschreibung">Beschreibung</label>
+          <textarea id="beschreibung" placeholder="Optional: Weitere Details..." rows="3"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-cancel" @click="Popup()">Abbrechen</button>
+          <button type="submit" class="btn-submit">Hinzufügen</button>
+        </div>
+      </form>
+    </div>
   </div>
+
 </template>
 
 <style scoped>
@@ -147,5 +194,194 @@ h1 {
   margin-bottom: 8px;
   font-weight: bold;
   color: #111827;
+}
+
+
+.popup {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  visibility: hidden;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  transition: background-color 0.3s ease;
+}
+
+.modal-overlay.show {
+  visibility: visible;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 450px;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 16px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #111827;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: color 0.2s ease;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  color: #111827;
+}
+
+.transaction-form {
+  padding: 24px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group:last-of-type {
+  margin-bottom: 28px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #374151;
+  font-size: 14px;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-group textarea {
+  resize: vertical;
+  font-family: inherit;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.btn-cancel,
+.btn-submit {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.btn-cancel {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.btn-cancel:hover {
+  background-color: #e5e7eb;
+}
+
+.btn-submit {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.btn-submit:hover {
+  background-color: #2563eb;
+}
+
+.btn-submit:active {
+  transform: scale(0.98);
+}
+
+.start-btn {
+  padding: 12px 28px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  margin-top: 20px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.start-btn:hover {
+  background-color: #2563eb;
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.start-btn:active {
+  transform: scale(0.98);
 }
 </style>

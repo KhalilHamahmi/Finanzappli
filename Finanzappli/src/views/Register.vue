@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { supabase } from '../supabase'
+import { useRouter } from 'vue-router'
 
 const username = ref('')
 const email = ref('')
@@ -51,10 +52,15 @@ const handleRegister = async () => {
           Registrieren
         </button>
 
+        <button type="submit" style="margin-top: 15px; ">
+         <router-link to="/login" style="color: white; text-decoration: none;">
+          Bereits ein Konto? Anmelden
+          </router-link>
+        </button>
       </form>
 
     </div>
-
+    
   </div>
 </template>
 
