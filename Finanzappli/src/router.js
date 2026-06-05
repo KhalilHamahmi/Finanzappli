@@ -4,6 +4,7 @@ import Main from './views/Main.vue'
 import Login from './views/Login.vue'
 import Register from './views/Register.vue'
 import Quiz from './views/quiz.vue'
+import GrossRegionVergleich from "./views/GrossRegionVergleich.vue";
 
 const routes = [
   { path: '/', name: 'Home', component: Home },
@@ -11,6 +12,7 @@ const routes = [
   { path: '/login', name: 'Login', component: Login },
   { path: '/register', name: 'Register', component: Register },
   { path: '/quiz', name: 'Quiz', component: Quiz },
+    {path: '/grossregionvergleich', name: 'grossregionvergleich', component: GrossRegionVergleich },
 ]
 
 const router = createRouter({
