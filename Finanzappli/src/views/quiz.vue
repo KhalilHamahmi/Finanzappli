@@ -104,7 +104,7 @@ export default {
       if (remaining >= 0) {
         return 'Gut gemacht! Dein Budget ist ausgeglichen, und du kannst dein Sparziel erreichen.'
       }
-      return 'Dein Sparziel ist aktuell etwas hoch. �berlege, ob du deine Ausgaben senken oder dein Sparziel leicht reduzieren willst.'
+      return 'Dein Sparziel ist aktuell etwas hoch. überlege, ob du deine Ausgaben senken oder dein Sparziel leicht reduzieren willst.'
     })
 
     const handleSubmit = () => {

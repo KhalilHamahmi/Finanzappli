@@ -15,6 +15,9 @@ onMounted(async () => {
       .select('id, name, einkommen, p10, p25, p75, p90')
       .order('name')
 
+  console.log('data:', data)
+  console.log('error:', error)
+
   if (error) {
     fehler.value = error.message
   } else {
