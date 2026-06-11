@@ -15,9 +15,6 @@ onMounted(async () => {
       .select('id, name, einkommen, p10, p25, p75, p90')
       .order('name')
 
-  console.log('data:', data)
-  console.log('error:', error)
-
   if (error) {
     fehler.value = error.message
   } else {
@@ -72,50 +69,171 @@ const ergebnis = computed(() => {
 </script>
 
 <template>
-  <div>
+  <div class="container">
 
-    <div>
-      <label>Grossregion</label>
-      <select v-model="selectedRegion">
-        <option v-for="r in regionen" :key="r.id" :value="r">
-          {{ r.name }}
-        </option>
-      </select>
-    </div>
+    <h1>Grossregionen Vergleich</h1>
+    <p class="subtitle">Vergleiche deinen Lohn mit dem Durchschnitt deiner Region.</p>
 
-    <div>
-      <label>Monatslohn brutto (CHF)</label>
-      <input type="number" v-model.number="lohn" min="0" step="100" />
+    <div class="card inputs">
+      <div class="field">
+        <label>Grossregion</label>
+        <select v-model="selectedRegion">
+          <option v-for="r in regionen" :key="r.id" :value="r">
+            {{ r.name }}
+          </option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Monatslohn brutto (CHF)</label>
+        <input type="number" v-model.number="lohn" min="0" step="100" placeholder="z.B. 6500" />
+      </div>
     </div>
 
     <p v-if="loading">Laden...</p>
-    <p v-if="fehler">{{ fehler }}</p>
+    <p v-if="fehler" class="fehler">{{ fehler }}</p>
 
     <template v-if="ergebnis">
-      <p>Perzentil: {{ ergebnis.perzentil }}</p>
-      <p>Medianlohn {{ selectedRegion.name }}: {{ fmt(ergebnis.median) }}</p>
-      <p>Differenz zum Median: {{ ergebnis.differenz >= 0 ? '+' : '' }}{{ fmt(ergebnis.differenz) }}</p>
 
-      <table>
-        <thead>
-        <tr>
-          <th>Vergleich</th>
-          <th>CHF / Monat</th>
-          <th>Ihr Lohn</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr v-for="zeile in ergebnis.zeilen" :key="zeile.bezeichnung">
-          <td>{{ zeile.bezeichnung }}</td>
-          <td>{{ fmt(zeile.wert) }}</td>
-          <td>{{ lohn >= zeile.wert ? 'darüber' : 'darunter' }}</td>
-        </tr>
-        </tbody>
-      </table>
+      <div class="metrics">
+        <div class="card metric">
+          <p class="metric-label">Ihr Perzentil</p>
+          <p class="metric-value">{{ ergebnis.perzentil }}.</p>
+        </div>
+        <div class="card metric">
+          <p class="metric-label">Medianlohn {{ selectedRegion.name.split(' (')[0] }}</p>
+          <p class="metric-value">{{ fmt(ergebnis.median) }}</p>
+        </div>
+        <div class="card metric">
+          <p class="metric-label">Differenz zum Median</p>
+          <p class="metric-value" :class="ergebnis.differenz >= 0 ? 'pos' : 'neg'">
+            {{ ergebnis.differenz >= 0 ? '+' : '' }}{{ fmt(ergebnis.differenz) }}
+          </p>
+        </div>
+      </div>
+
+      <div class="card">
+        <table>
+          <thead>
+          <tr>
+            <th>Vergleich</th>
+            <th>CHF / Monat</th>
+            <th>Ihr Lohn</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr v-for="zeile in ergebnis.zeilen" :key="zeile.bezeichnung">
+            <td>{{ zeile.bezeichnung }}</td>
+            <td>{{ fmt(zeile.wert) }}</td>
+            <td :class="lohn >= zeile.wert ? 'pos' : 'neg'">
+              {{ lohn >= zeile.wert ? 'darüber' : 'darunter' }}
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+
     </template>
 
   </div>
 </template>
 
 <style scoped>
+.container {
+  min-height: 100vh;
+  background: #f3f4f6;
+  padding: 40px 20px;
+  font-family: Arial, sans-serif;
+}
+
+h1 {
+  font-size: 2.5rem;
+  color: #111827;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  color: #4b5563;
+  margin-bottom: 30px;
+}
+
+.card {
+  background: white;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  margin-bottom: 20px;
+}
+
+.inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field label {
+  font-size: 0.9rem;
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.field select,
+.field input {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.metric {
+  text-align: center;
+}
+
+.metric-label {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.metric-value {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  text-align: left;
+  padding: 10px;
+  color: #6b7280;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+td {
+  padding: 10px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #111827;
+}
+
+.pos { color: #16a34a; font-weight: 500; }
+.neg { color: #dc2626; font-weight: 500; }
+.fehler { color: #dc2626; }
 </style>
