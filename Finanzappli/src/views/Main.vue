@@ -1,17 +1,31 @@
 ﻿<script setup>
-import { computed, reactive } from "vue";
+import { computed, reactive, onMounted } from "vue";
+import { ref } from "vue";
+
+const newCategory = ref("")
+const newAmount = ref(0)
 
 const budget = reactive({
-  income: 5200,
-  categories: [
-    { label: "Essen", amount: 780, color: "#22c55e" },
-    { label: "Transport", amount: 260, color: "#3b82f6" },
-    { label: "Miete", amount: 1600, color: "#f59e0b" },
-    { label: "Shopping", amount: 310, color: "#ef4444" },
-    { label: "Freizeit", amount: 250, color: "#8b5cf6" },
-    { label: "Sparen", amount: 620, color: "#06b6d4" }
-  ]
+  income: 0,
+  categories: []
 });
+
+onMounted(() => {
+
+  const storedData = localStorage.getItem("quizData")
+
+  if (!storedData) return
+
+  const data = JSON.parse(storedData)
+
+  budget.income = data.income
+
+  budget.categories = data.categories.map(item => ({
+    label: item.label,
+    amount: Number(item.amount),
+    color: getRandomColor()
+  }))
+})
 
 const totalExpenses = computed(() => budget.categories.reduce((sum, item) => sum + item.amount, 0));
 const remainingAmount = computed(() => budget.income - totalExpenses.value);
@@ -56,6 +70,22 @@ const formatCHF = (value) =>
     currency: "CHF",
     maximumFractionDigits: 2
   }).format(value);
+
+function getRandomColor() {
+
+  const colors = [
+    "#22c55e",
+    "#3b82f6",
+    "#f59e0b",
+    "#ef4444",
+    "#8b5cf6",
+    "#06b6d4",
+    "#14b8a6",
+    "#f97316"
+  ]
+
+  return colors[Math.floor(Math.random() * colors.length)]
+}
 
 function Popup() {
   const modal = document.getElementById("myPopup");
