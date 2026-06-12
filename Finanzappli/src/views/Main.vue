@@ -30,6 +30,16 @@ const budget = reactive({
 
 const transaktionen = ref([]);
 
+const sortKey = ref("datum");
+const sortDir = ref("desc");
+
+const detailOffen = ref(false);
+const selected = ref(null);
+const editMode = ref(false);
+const editCategory = ref("");
+const editAmount = ref(0);
+const editDescription = ref("");
+
 const aktuellerMonat = () => {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -101,7 +111,7 @@ async function ladeDaten() {
   // 4. Transaktionen für diesen Benutzer/Monat holen
   const { data: transData, error: transError } = await supabase
       .from("Transaktion")
-      .select("id, betrag, kategorie, typ, datum")
+      .select("id, betrag, kategorie, typ, datum, beschreibung")
       .eq("benutzer_id", benutzer.id)
       .gte("datum", `${monat}-01`)
       .order("datum", { ascending: false });
@@ -212,6 +222,7 @@ async function transaktionHinzufuegen() {
           budget_id: budget.budgetId,
           betrag: Number(newAmount.value),
           kategorie: newCategory.value,
+          beschreibung: newDescription.value || null,
           typ: "ausgabe",
           datum: new Date().toISOString().split("T")[0]
         }
@@ -227,6 +238,100 @@ async function transaktionHinzufuegen() {
   newDescription.value = "";
 
   Popup();
+  await ladeDaten();
+}
+
+const formatDatum = (d) =>
+    new Date(d).toLocaleDateString("de-CH", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    });
+
+const sortierteTransaktionen = computed(() => {
+  const arr = [...transaktionen.value];
+  arr.sort((a, b) => {
+    let va, vb;
+    if (sortKey.value === "betrag") {
+      va = Number(a.betrag);
+      vb = Number(b.betrag);
+    } else {
+      va = a.datum;
+      vb = b.datum;
+    }
+    if (va < vb) return sortDir.value === "asc" ? -1 : 1;
+    if (va > vb) return sortDir.value === "asc" ? 1 : -1;
+    return 0;
+  });
+  return arr;
+});
+
+function sortBy(key) {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === "asc" ? "desc" : "asc";
+  } else {
+    sortKey.value = key;
+    sortDir.value = key === "datum" ? "desc" : "asc";
+  }
+}
+
+function openDetail(t) {
+  selected.value = t;
+  editMode.value = false;
+  detailOffen.value = true;
+}
+
+function closeDetail() {
+  detailOffen.value = false;
+  selected.value = null;
+  editMode.value = false;
+}
+
+function startEdit() {
+  editCategory.value = selected.value.kategorie;
+  editAmount.value = Number(selected.value.betrag);
+  editDescription.value = selected.value.beschreibung || "";
+  editMode.value = true;
+}
+
+async function saveEdit() {
+  if (!editCategory.value || !editAmount.value) {
+    alert("Bitte Kategorie und Betrag ausfüllen.");
+    return;
+  }
+
+  const { error } = await supabase
+      .from("Transaktion")
+      .update({
+        kategorie: editCategory.value,
+        betrag: Number(editAmount.value),
+        beschreibung: editDescription.value || null
+      })
+      .eq("id", selected.value.id);
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  closeDetail();
+  await ladeDaten();
+}
+
+async function deleteTransaktion() {
+  if (!confirm("Diese Transaktion wirklich löschen?")) return;
+
+  const { error } = await supabase
+      .from("Transaktion")
+      .delete()
+      .eq("id", selected.value.id);
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  closeDetail();
   await ladeDaten();
 }
 </script>
@@ -299,6 +404,35 @@ async function transaktionHinzufuegen() {
       </section>
 
       <button class="start-btn" @click="Popup">Transaktion hinzufügen</button>
+
+      <section class="transactions-card">
+        <h2>Alle Transaktionen</h2>
+
+        <table v-if="transaktionen.length" class="trans-table">
+          <thead>
+            <tr>
+              <th class="sortable" @click="sortBy('datum')">
+                Datum
+                <span v-if="sortKey === 'datum'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+              </th>
+              <th>Kategorie</th>
+              <th class="sortable num" @click="sortBy('betrag')">
+                Betrag
+                <span v-if="sortKey === 'betrag'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="t in sortierteTransaktionen" :key="t.id" @click="openDetail(t)">
+              <td>{{ formatDatum(t.datum) }}</td>
+              <td>{{ t.kategorie }}</td>
+              <td class="num">{{ formatCHF(t.betrag) }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p v-else class="empty-text">Noch keine Transaktionen erfasst.</p>
+      </section>
     </template>
   </div>
 
@@ -331,6 +465,68 @@ async function transaktionHinzufuegen() {
         <div class="form-actions">
           <button type="button" class="btn-cancel" @click="Popup">Abbrechen</button>
           <button type="submit" class="btn-submit">Hinzufügen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" :class="{ show: detailOffen }" @click="closeDetail">
+    <div class="modal-content" @click.stop>
+      <div class="modal-header">
+        <h2>{{ editMode ? 'Transaktion bearbeiten' : 'Transaktion' }}</h2>
+        <button class="close-btn" @click="closeDetail">&times;</button>
+      </div>
+
+      <div v-if="selected && !editMode" class="detail-body">
+        <div class="detail-row">
+          <span>Datum</span>
+          <strong>{{ formatDatum(selected.datum) }}</strong>
+        </div>
+        <div class="detail-row">
+          <span>Kategorie</span>
+          <strong>{{ selected.kategorie }}</strong>
+        </div>
+        <div class="detail-row">
+          <span>Betrag</span>
+          <strong>{{ formatCHF(selected.betrag) }}</strong>
+        </div>
+        <div class="detail-row">
+          <span>Typ</span>
+          <strong>{{ selected.typ }}</strong>
+        </div>
+        <div class="detail-desc">
+          <span>Beschreibung</span>
+          <p>{{ selected.beschreibung || 'Keine Beschreibung angegeben.' }}</p>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-delete" @click="deleteTransaktion">Löschen</button>
+          <button type="button" class="btn-submit" @click="startEdit">Bearbeiten</button>
+        </div>
+      </div>
+
+      <form v-else-if="selected && editMode" @submit.prevent="saveEdit" class="transaction-form">
+        <div class="form-group">
+          <label>Kategorie</label>
+          <select v-model="editCategory">
+            <option value="" disabled>Kategorie wählen</option>
+            <option v-for="kat in kategorienOptionen" :key="kat" :value="kat">{{ kat }}</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Betrag (CHF)</label>
+          <input type="number" v-model="editAmount" placeholder="0.00" step="0.01" min="0" />
+        </div>
+
+        <div class="form-group">
+          <label>Beschreibung</label>
+          <textarea v-model="editDescription" placeholder="Optional: Weitere Details..." rows="3"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-cancel" @click="editMode = false">Abbrechen</button>
+          <button type="submit" class="btn-submit">Speichern</button>
         </div>
       </form>
     </div>
@@ -732,6 +928,138 @@ h1 {
 }
 
 .btn-submit:active {
+  transform: scale(0.98);
+}
+
+.transactions-card {
+  background: white;
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  max-width: 1100px;
+  margin: 30px auto 0;
+}
+
+.transactions-card h2 {
+  margin: 0 0 20px;
+  font-size: 1.25rem;
+  color: #111827;
+}
+
+.trans-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.trans-table th {
+  text-align: left;
+  padding: 12px 14px;
+  color: #6b7280;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #e5e7eb;
+  user-select: none;
+}
+
+.trans-table th.num,
+.trans-table td.num {
+  text-align: right;
+}
+
+.trans-table th.sortable {
+  cursor: pointer;
+}
+
+.trans-table th.sortable:hover {
+  color: #2563eb;
+}
+
+.trans-table tbody tr {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.trans-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.trans-table td {
+  padding: 14px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #111827;
+  font-size: 0.95rem;
+}
+
+.empty-text {
+  color: #6b7280;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.detail-body {
+  padding: 24px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.detail-row span {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.detail-row strong {
+  color: #111827;
+  font-size: 0.95rem;
+  text-transform: capitalize;
+}
+
+.detail-desc {
+  padding: 16px 0 8px;
+}
+
+.detail-desc span {
+  display: block;
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+}
+
+.detail-desc p {
+  margin: 0;
+  color: #111827;
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 12px 14px;
+  line-height: 1.5;
+}
+
+.detail-body .form-actions {
+  margin-top: 20px;
+  justify-content: space-between;
+}
+
+.btn-delete {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  font-size: 14px;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  transition: all 0.2s ease;
+}
+
+.btn-delete:hover {
+  background-color: #fecaca;
+}
+
+.btn-delete:active {
   transform: scale(0.98);
 }
 </style>
