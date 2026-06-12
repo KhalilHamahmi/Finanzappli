@@ -5,13 +5,17 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-const vorname = ref('')
+const username = ref('')
 const email = ref('')
 const password = ref('')
-const kanton = ref('')
-const grossregionId = ref(null)
+const passwordConfirm = ref('')
 
 const handleRegister = async () => {
+
+  if (password.value !== passwordConfirm.value) {
+    alert("Die Passwörter stimmen nicht überein.")
+    return
+  }
 
   const { data, error } = await supabase.auth.signUp({
     email: email.value,
@@ -27,10 +31,9 @@ const handleRegister = async () => {
       .from('Benutzer')
       .insert([
         {
-          vorname: vorname.value,
+          auth_id: data.user.id,
+          username: username.value,
           email: email.value,
-          kanton: kanton.value,
-          grossregion_id: grossregionId.value
         }
       ])
 
@@ -38,8 +41,6 @@ const handleRegister = async () => {
     alert(dbError.message)
     return
   }
-
-  alert("Registrierung erfolgreich!")
 
   router.push('/login')
 }
@@ -64,20 +65,9 @@ const handleRegister = async () => {
         </div>
 
         <div class="input-group">
-          <label>Vorname</label>
-          <input
-              type="text"
-              v-model="vorname"
-              placeholder="Vorname eingeben"
-          />
-        </div>
-
-        <div class="input-group">
           <label>E-Mail</label>
           <input type="email" v-model="email" placeholder="E-Mail eingeben" />
         </div>
-
-
 
         <div class="input-group">
           <label>Passwort</label>
@@ -85,23 +75,9 @@ const handleRegister = async () => {
         </div>
 
         <div class="input-group">
-          <label>Kanton</label>
-          <input
-              type="text"
-              v-model="kanton"
-              placeholder="Kanton eingeben"
-          />
+          <label>Passwort wiederholen</label>
+          <input type="password" v-model="passwordConfirm" placeholder="Passwort wiederholen" />
         </div>
-
-        <div class="input-group">
-          <label>Grossregion ID</label>
-          <input
-              type="number"
-              v-model="grossregionId"
-              placeholder="z.B. 1"
-          />
-        </div>
-
 
         <button type="submit">
           Registrieren
@@ -110,11 +86,9 @@ const handleRegister = async () => {
         <button
             type="button"
             style="margin-top: 15px;"
-            @click="$router.push('/login')"
+            @click="router.push('/login')"
         >
-          <router-link to="/login" style="color: white; text-decoration: none;">
-            Bereits ein Konto? Anmelden
-          </router-link>
+          Bereits ein Konto? Anmelden
         </button>
       </form>
 
