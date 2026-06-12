@@ -1,31 +1,138 @@
 ﻿<script setup>
-import { computed, reactive, onMounted } from "vue";
-import { ref } from "vue";
+import { computed, reactive, onMounted, ref } from "vue";
+import { supabase } from "../supabase";
 
-const newCategory = ref("")
-const newAmount = ref(0)
+const loading = ref(true);
+const fehler = ref(null);
+const benutzerId = ref(null);
+
+const newCategory = ref("");
+const newAmount = ref(0);
+const newDescription = ref("");
+
+const kategorienOptionen = [
+  "Wohnen",
+  "Lebensmittel",
+  "Transport",
+  "Freizeit",
+  "Gesundheit",
+  "Kleidung",
+  "Restaurant",
+  "Sonstiges",
+];
 
 const budget = reactive({
   income: 0,
+  budgetId: null,
   categories: []
 });
 
-onMounted(() => {
+const transaktionen = ref([]);
 
-  const storedData = localStorage.getItem("quizData")
+const aktuellerMonat = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+};
 
-  if (!storedData) return
+async function ladeDaten() {
+  loading.value = true;
+  fehler.value = null;
 
-  const data = JSON.parse(storedData)
+  // 1. Eingeloggten Benutzer holen
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) {
+    fehler.value = "Nicht eingeloggt.";
+    loading.value = false;
+    return;
+  }
 
-  budget.income = data.income
+  // 2. Benutzer-Zeile anhand auth_id finden
+  const { data: benutzer, error: benutzerError } = await supabase
+      .from("Benutzer")
+      .select("id")
+      .eq("auth_id", authData.user.id)
+      .single();
 
-  budget.categories = data.categories.map(item => ({
-    label: item.label,
-    amount: Number(item.amount),
+  if (benutzerError || !benutzer) {
+    fehler.value = "Benutzer nicht gefunden.";
+    loading.value = false;
+    return;
+  }
+
+  benutzerId.value = benutzer.id;
+
+  // 3. Budget für aktuellen Monat holen
+  const monat = aktuellerMonat();
+  const { data: budgetData, error: budgetError } = await supabase
+      .from("Budget")
+      .select("id, einkommen, ausgaben")
+      .eq("benutzer_id", benutzer.id)
+      .eq("monat", monat)
+      .maybeSingle();
+
+  if (budgetError) {
+    fehler.value = budgetError.message;
+    loading.value = false;
+    return;
+  }
+
+  if (budgetData) {
+    budget.income = Number(budgetData.einkommen) || 0;
+    budget.budgetId = budgetData.id;
+  } else {
+    // Kein Budget für diesen Monat -> anlegen
+    const { data: neuesBudget, error: insertBudgetError } = await supabase
+        .from("Budget")
+        .insert([{ monat, benutzer_id: benutzer.id, einkommen: 0, ausgaben: 0 }])
+        .select("id, einkommen")
+        .single();
+
+    if (insertBudgetError) {
+      fehler.value = insertBudgetError.message;
+      loading.value = false;
+      return;
+    }
+
+    budget.income = 0;
+    budget.budgetId = neuesBudget.id;
+  }
+
+  // 4. Transaktionen für diesen Benutzer/Monat holen
+  const { data: transData, error: transError } = await supabase
+      .from("Transaktion")
+      .select("id, betrag, kategorie, typ, datum")
+      .eq("benutzer_id", benutzer.id)
+      .gte("datum", `${monat}-01`)
+      .order("datum", { ascending: false });
+
+  if (transError) {
+    fehler.value = transError.message;
+    loading.value = false;
+    return;
+  }
+
+  transaktionen.value = transData;
+
+  // 5. Kategorien aus Transaktionen gruppieren (nur Ausgaben)
+  const gruppiert = {};
+  for (const t of transData) {
+    if (t.typ === "ausgabe") {
+      gruppiert[t.kategorie] = (gruppiert[t.kategorie] || 0) + Number(t.betrag);
+    }
+  }
+
+  budget.categories = Object.entries(gruppiert).map(([label, amount]) => ({
+    label,
+    amount,
     color: getRandomColor()
-  }))
-})
+  }));
+
+  loading.value = false;
+}
+
+onMounted(() => {
+  ladeDaten();
+});
 
 const totalExpenses = computed(() => budget.categories.reduce((sum, item) => sum + item.amount, 0));
 const remainingAmount = computed(() => budget.income - totalExpenses.value);
@@ -51,8 +158,8 @@ const categorySlices = computed(() => {
 
 const pieStyle = computed(() => ({
   backgroundImage: `conic-gradient(${categorySlices.value
-    .map((slice) => `${slice.color} ${slice.start}% ${slice.start + slice.percent}%`)
-    .join(", ")})`
+      .map((slice) => `${slice.color} ${slice.start}% ${slice.start + slice.percent}%`)
+      .join(", ")})`
 }));
 
 const budgetStyle = computed(() => {
@@ -65,14 +172,13 @@ const budgetStyle = computed(() => {
 });
 
 const formatCHF = (value) =>
-  new Intl.NumberFormat("de-CH", {
-    style: "currency",
-    currency: "CHF",
-    maximumFractionDigits: 2
-  }).format(value);
+    new Intl.NumberFormat("de-CH", {
+      style: "currency",
+      currency: "CHF",
+      maximumFractionDigits: 2
+    }).format(value);
 
 function getRandomColor() {
-
   const colors = [
     "#22c55e",
     "#3b82f6",
@@ -82,14 +188,45 @@ function getRandomColor() {
     "#06b6d4",
     "#14b8a6",
     "#f97316"
-  ]
-
-  return colors[Math.floor(Math.random() * colors.length)]
+  ];
+  return colors[Math.floor(Math.random() * colors.length)];
 }
 
 function Popup() {
   const modal = document.getElementById("myPopup");
   if (modal) modal.classList.toggle("show");
+}
+
+async function transaktionHinzufuegen() {
+  if (!newCategory.value || !newAmount.value) {
+    alert("Bitte Kategorie und Betrag ausfüllen.");
+    return;
+  }
+
+  const { error } = await supabase
+      .from("Transaktion")
+      .insert([
+        {
+          benutzer_id: benutzerId.value,
+          budget_id: budget.budgetId,
+          betrag: Number(newAmount.value),
+          kategorie: newCategory.value,
+          typ: "ausgabe",
+          datum: new Date().toISOString().split("T")[0]
+        }
+      ]);
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  newCategory.value = "";
+  newAmount.value = 0;
+  newDescription.value = "";
+
+  Popup();
+  await ladeDaten();
 }
 </script>
 
@@ -101,36 +238,44 @@ function Popup() {
       Hier siehst du, wie viel Prozent deiner Gesamtausgaben auf jede Kategorie entfallen und wie viel vom Budget noch übrig ist.
     </p>
 
-    <section class="chart-grid">
-      <article class="chart-card">
-        <h2>Ausgaben nach Kategorie</h2>
-        <div class="pie-chart" :style="pieStyle"></div>
-        <div class="chart-legend">
-          <div v-for="item in categorySlices" :key="item.label" class="legend-row">
-            <span class="legend-color" :style="{ background: item.color }"></span>
-            <span class="legend-label">{{ item.label }}</span>
-            <span class="legend-value">{{ item.percent }}%</span>
-          </div>
-        </div>
-      </article>
+    <p v-if="loading">Laden...</p>
+    <p v-if="fehler" class="fehler-text">{{ fehler }}</p>
 
-      <article class="chart-card budget-card">
-        <h2>Verbleibendes Budget</h2>
-        <div class="donut-chart" :style="budgetStyle">
-          <div class="donut-center">
-            <strong>{{ remainingAmount.value >= 0 ? formatCHF(remainingAmount.value) : '-' + formatCHF(Math.abs(remainingAmount.value)) }}</strong>
-            <span>{{ remainingAmount.value >= 0 ? 'noch übrig' : 'überzogen' }}</span>
+    <template v-if="!loading && !fehler">
+      <section class="chart-grid">
+        <article class="chart-card">
+          <h2>Ausgaben nach Kategorie</h2>
+          <div class="pie-chart" :style="pieStyle"></div>
+          <div class="chart-legend">
+            <div v-if="categorySlices.length === 0" class="legend-row">
+              <span class="legend-label">Noch keine Ausgaben erfasst</span>
+            </div>
+            <div v-for="item in categorySlices" :key="item.label" class="legend-row">
+              <span class="legend-color" :style="{ background: item.color }"></span>
+              <span class="legend-label">{{ item.label }}</span>
+              <span class="legend-value">{{ item.percent }}%</span>
+            </div>
           </div>
-        </div>
-        <div class="budget-summary">
-          <p>Gesamteinnahmen: <strong>{{ formatCHF(budget.income) }}</strong></p>
-          <p>Gesamtausgaben: <strong>{{ formatCHF(totalExpenses) }}</strong></p>
-          <p>Restbudget: <strong>{{ Math.round(remainingPercent.value) }}%</strong></p>
-        </div>
-      </article>
-    </section>
+        </article>
 
-    <button class="start-btn" @click="Popup">Transaktion hinzufügen</button>
+        <article class="chart-card budget-card">
+          <h2>Verbleibendes Budget</h2>
+          <div class="donut-chart" :style="budgetStyle">
+            <div class="donut-center">
+              <strong>{{ remainingAmount >= 0 ? formatCHF(remainingAmount) : '-' + formatCHF(Math.abs(remainingAmount)) }}</strong>
+              <span>{{ remainingAmount >= 0 ? 'noch übrig' : 'überzogen' }}</span>
+            </div>
+          </div>
+          <div class="budget-summary">
+            <p>Gesamteinnahmen: <strong>{{ formatCHF(budget.income) }}</strong></p>
+            <p>Gesamtausgaben: <strong>{{ formatCHF(totalExpenses) }}</strong></p>
+            <p>Restbudget: <strong>{{ Math.round(remainingPercent) }}%</strong></p>
+          </div>
+        </article>
+      </section>
+
+      <button class="start-btn" @click="Popup">Transaktion hinzufügen</button>
+    </template>
   </div>
 
   <div class="modal-overlay" id="myPopup">
@@ -140,20 +285,23 @@ function Popup() {
         <button class="close-btn" @click="Popup">&times;</button>
       </div>
 
-      <form @submit.prevent class="transaction-form">
+      <form @submit.prevent="transaktionHinzufuegen" class="transaction-form">
         <div class="form-group">
           <label for="kategorie">Kategorie</label>
-          <input type="text" id="kategorie" placeholder="z.B. Essen, Transport, Shopping..." />
+          <select id="kategorie" v-model="newCategory">
+            <option value="" disabled>Kategorie wählen</option>
+            <option v-for="kat in kategorienOptionen" :key="kat" :value="kat">{{ kat }}</option>
+          </select>
         </div>
 
         <div class="form-group">
           <label for="betrag">Betrag (CHF)</label>
-          <input type="number" id="betrag" placeholder="0.00" step="0.01" min="0" />
+          <input type="number" id="betrag" v-model="newAmount" placeholder="0.00" step="0.01" min="0" />
         </div>
 
         <div class="form-group">
           <label for="beschreibung">Beschreibung</label>
-          <textarea id="beschreibung" placeholder="Optional: Weitere Details..." rows="3"></textarea>
+          <textarea id="beschreibung" v-model="newDescription" placeholder="Optional: Weitere Details..." rows="3"></textarea>
         </div>
 
         <div class="form-actions">
@@ -162,15 +310,6 @@ function Popup() {
         </div>
       </form>
     </div>
-  </div>
-
-  <div class="modal-overlay">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close-btn" @click="Popup">&times;</button>
-      </div>
-    </div>
-
   </div>
 </template>
 
@@ -192,6 +331,12 @@ h1 {
   text-align: center;
   color: #6b7280;
   margin-bottom: 40px;
+}
+
+.fehler-text {
+  text-align: center;
+  color: #dc2626;
+  margin-bottom: 20px;
 }
 
 .chart-grid {
@@ -414,6 +559,7 @@ h1 {
 }
 
 .form-group input,
+.form-group select,
 .form-group textarea {
   width: 100%;
   padding: 10px 12px;
