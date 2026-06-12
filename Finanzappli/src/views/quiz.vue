@@ -108,6 +108,21 @@ export default {
     })
 
     const handleSubmit = () => {
+
+      const quizData = {
+        income: income.value,
+        savingGoal: savingGoal.value,
+        categories: selectedCategoryOptions.value.map(category => ({
+          label: category.label,
+          amount: categoryAmounts[category.key]
+        }))
+      }
+
+      localStorage.setItem(
+          "quizData",
+          JSON.stringify(quizData)
+      )
+
       submitted.value = true
     }
 
