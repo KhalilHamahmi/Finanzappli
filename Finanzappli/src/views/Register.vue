@@ -9,11 +9,31 @@ const username = ref('')
 const email = ref('')
 const password = ref('')
 const passwordConfirm = ref('')
+const fehler = ref('')
+
+const uebersetzeFehler = (nachricht) => {
+  if (/at least 6 characters|Password should be at least/i.test(nachricht)) {
+    return 'Das Passwort muss mindestens 6 Zeichen lang sein.'
+  }
+  if (/already registered|already exists|User already/i.test(nachricht)) {
+    return 'Diese E-Mail ist bereits registriert.'
+  }
+  if (/valid email|invalid email/i.test(nachricht)) {
+    return 'Bitte gib eine gültige E-Mail-Adresse ein.'
+  }
+  return nachricht
+}
 
 const handleRegister = async () => {
+  fehler.value = ''
+
+  if (!username.value || !email.value || !password.value) {
+    fehler.value = 'Bitte fülle alle Felder aus.'
+    return
+  }
 
   if (password.value !== passwordConfirm.value) {
-    alert("Die Passwörter stimmen nicht überein.")
+    fehler.value = 'Die Passwörter stimmen nicht überein.'
     return
   }
 
@@ -23,7 +43,7 @@ const handleRegister = async () => {
   })
 
   if (error) {
-    alert(error.message)
+    fehler.value = uebersetzeFehler(error.message)
     return
   }
 
@@ -38,7 +58,7 @@ const handleRegister = async () => {
       ])
 
   if (dbError) {
-    alert(dbError.message)
+    fehler.value = uebersetzeFehler(dbError.message)
     return
   }
 
@@ -78,6 +98,8 @@ const handleRegister = async () => {
           <label>Passwort wiederholen</label>
           <input type="password" v-model="passwordConfirm" placeholder="Passwort wiederholen" />
         </div>
+
+        <p v-if="fehler" class="error-box">{{ fehler }}</p>
 
         <button type="submit">
           Registrieren
@@ -169,5 +191,17 @@ button {
 
 button:hover {
   background: #1d4ed8;
+}
+
+.error-box {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: center;
 }
 </style>
