@@ -1,7 +1,11 @@
-<script>
+<script setup>
+import { useRouter } from "vue-router";
 
-import {supabase} from "../supabase.js";
+const router = useRouter();
 
+const goToRegister = () => {
+  router.push("/register");
+};
 </script>
 
 <template>
@@ -14,7 +18,7 @@ import {supabase} from "../supabase.js";
         Verwalte deine Finanzen einfach, modern und übersichtlich.
       </p>
 
-      <button class="start-btn">
+      <button class="start-btn" @click="goToRegister">
         Jetzt starten
       </button>
     </section>
