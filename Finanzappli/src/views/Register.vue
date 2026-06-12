@@ -112,14 +112,14 @@ const handleRegister = async () => {
             style="margin-top: 15px;"
             @click="$router.push('/login')"
         >
-         <router-link to="/login" style="color: white; text-decoration: none;">
-          Bereits ein Konto? Anmelden
+          <router-link to="/login" style="color: white; text-decoration: none;">
+            Bereits ein Konto? Anmelden
           </router-link>
         </button>
       </form>
 
     </div>
-    
+
   </div>
 </template>
 
