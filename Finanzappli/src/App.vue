@@ -1,3 +1,33 @@
+<script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { supabase } from './supabase'
+
+const router = useRouter()
+const istEingeloggt = ref(false)
+
+let subscription = null
+
+onMounted(async () => {
+  const { data } = await supabase.auth.getSession()
+  istEingeloggt.value = !!data.session
+
+  const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    istEingeloggt.value = !!session
+  })
+  subscription = listener.subscription
+})
+
+onUnmounted(() => {
+  subscription?.unsubscribe()
+})
+
+const handleLogout = async () => {
+  await supabase.auth.signOut()
+  router.push('/login')
+}
+</script>
+
 <template>
   <div class="app">
     <nav class="navbar">
@@ -13,8 +43,13 @@
       </div>
 
       <div class="nav-auth">
-        <router-link to="/login" class="btn-ghost">Login</router-link>
-        <router-link to="/register" class="btn-primary">Registrieren</router-link>
+        <template v-if="istEingeloggt">
+          <button class="btn-primary" @click="handleLogout">Ausloggen</button>
+        </template>
+        <template v-else>
+          <router-link to="/login" class="btn-ghost">Login</router-link>
+          <router-link to="/register" class="btn-primary">Registrieren</router-link>
+        </template>
       </div>
     </nav>
 
@@ -107,12 +142,15 @@
 
 .btn-primary {
   padding: 8px 18px;
+  border: none;
   border-radius: 10px;
   text-decoration: none;
   background: #2563eb;
   color: white;
   font-weight: 600;
   font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
   transition: background 0.2s;
 }
 
