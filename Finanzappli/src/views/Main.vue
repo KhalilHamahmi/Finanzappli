@@ -9,6 +9,7 @@ const benutzerId = ref(null);
 const newCategory = ref("");
 const newAmount = ref(0);
 const newDescription = ref("");
+const chartView = ref("pie");
 
 const kategorienOptionen = [
   "Wohnen",
@@ -244,9 +245,32 @@ async function transaktionHinzufuegen() {
     <template v-if="!loading && !fehler">
       <section class="chart-grid">
         <article class="chart-card">
-          <h2>Ausgaben nach Kategorie</h2>
-          <div class="pie-chart" :style="pieStyle"></div>
-          <div class="chart-legend">
+          <div class="card-header">
+            <h2>Ausgaben nach Kategorie</h2>
+            <div class="view-toggle">
+              <button :class="{ active: chartView === 'pie' }" @click="chartView = 'pie'">Kreis</button>
+              <button :class="{ active: chartView === 'bar' }" @click="chartView = 'bar'">Säulen</button>
+            </div>
+          </div>
+          <p class="total-amount">{{ formatCHF(totalExpenses) }}</p>
+          <p class="total-label">Total Ausgaben</p>
+
+          <div v-if="chartView === 'pie'" class="pie-chart" :style="pieStyle"></div>
+
+          <div v-else class="bar-chart">
+            <div v-for="item in categorySlices" :key="item.label" class="bar-row">
+              <span class="bar-label">{{ item.label }}</span>
+              <div class="bar-track">
+                <div class="bar-fill" :style="{ width: item.percent + '%', background: item.color }"></div>
+              </div>
+              <span class="bar-percent">{{ item.percent }}%</span>
+            </div>
+            <p v-if="categorySlices.length === 0" class="legend-row">
+              <span class="legend-label">Noch keine Ausgaben erfasst</span>
+            </p>
+          </div>
+
+          <div v-if="chartView === 'pie'" class="chart-legend">
             <div v-if="categorySlices.length === 0" class="legend-row">
               <span class="legend-label">Noch keine Ausgaben erfasst</span>
             </div>
@@ -358,7 +382,95 @@ h1 {
   margin: 0;
   font-size: 1.25rem;
   color: #111827;
-  margin-bottom: 24px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 6px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.view-toggle button {
+  border: none;
+  background: transparent;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-toggle button.active {
+  background: white;
+  color: #111827;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.total-amount {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.total-label {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin: 0 0 24px 0;
+}
+
+.bar-chart {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 50px;
+  align-items: center;
+  gap: 10px;
+}
+
+.bar-label {
+  color: #374151;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bar-track {
+  background: #f3f4f6;
+  border-radius: 6px;
+  height: 14px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+
+.bar-percent {
+  text-align: right;
+  font-weight: 700;
+  color: #111827;
+  font-size: 0.9rem;
 }
 
 .pie-chart,
