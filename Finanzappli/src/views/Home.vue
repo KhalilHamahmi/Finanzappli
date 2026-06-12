@@ -1,5 +1,12 @@
 <script setup>
 import { useRouter } from "vue-router";
+import { computed, reactive, onMounted, ref } from "vue";
+
+const showModal = ref(false);
+
+function Popup() {
+  showModal.value = !showModal.value;
+}
 
 const router = useRouter();
 
