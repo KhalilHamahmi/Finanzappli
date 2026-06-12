@@ -61,9 +61,11 @@
 <script>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { supabase } from '../supabase'
+import { useRouter } from 'vue-router'
 
 export default {
   setup() {
+    const router = useRouter()
     const income = ref(0)
     const savingGoal = ref(0)
     const selectedCategories = ref([])
@@ -156,6 +158,30 @@ export default {
         budgetId.value = neuesBudget.id
       }
 
+      // Bestehende Transaktionen des Monats laden und Formular vorausfüllen
+      const { data: transData, error: transError } = await supabase
+          .from('Transaktion')
+          .select('kategorie, betrag')
+          .eq('benutzer_id', benutzer.id)
+          .eq('typ', 'ausgabe')
+          .gte('datum', `${monat}-01`)
+
+      if (transError) {
+        fehler.value = transError.message
+        loading.value = false
+        return
+      }
+
+      for (const t of transData) {
+        const option = categoryOptions.find((o) => o.label === t.kategorie)
+        if (option) {
+          if (!selectedCategories.value.includes(option.key)) {
+            selectedCategories.value.push(option.key)
+          }
+          categoryAmounts[option.key] = (categoryAmounts[option.key] || 0) + Number(t.betrag)
+        }
+      }
+
       loading.value = false
     })
 
@@ -180,6 +206,8 @@ export default {
     })
 
     const handleSubmit = async () => {
+      const monat = aktuellerMonat()
+
       // 1. Budget aktualisieren (Einkommen, Sparziel, Ausgaben)
       const { error: updateError } = await supabase
           .from('Budget')
@@ -195,7 +223,20 @@ export default {
         return
       }
 
-      // 2. Für jede gewählte Kategorie eine Transaktion anlegen
+      // 2. Alte Quiz-Ausgaben dieses Monats löschen, bevor neue eingefügt werden
+      const { error: deleteError } = await supabase
+          .from('Transaktion')
+          .delete()
+          .eq('benutzer_id', benutzerId.value)
+          .eq('typ', 'ausgabe')
+          .gte('datum', `${monat}-01`)
+
+      if (deleteError) {
+        fehler.value = deleteError.message
+        return
+      }
+
+      // 3. Für jede gewählte Kategorie eine Transaktion anlegen
       const heute = new Date().toISOString().split('T')[0]
       const transaktionen = selectedCategoryOptions.value
           .filter((category) => categoryAmounts[category.key] > 0)
@@ -219,7 +260,7 @@ export default {
         }
       }
 
-      submitted.value = true
+      router.push('/main')
     }
 
     const formatCHF = (value) => {
