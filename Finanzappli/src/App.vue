@@ -40,6 +40,7 @@ const handleLogout = async () => {
         <router-link to="/quiz">Quiz</router-link>
         <router-link to="/investmentrechner">Investment</router-link>
         <router-link to="/grossregionvergleich">Regionen</router-link>
+        <router-link to="/tipps">Tipps</router-link>
       </div>
 
       <div class="nav-auth">
