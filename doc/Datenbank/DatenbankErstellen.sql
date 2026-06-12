@@ -31,6 +31,7 @@ CREATE TABLE "Transaktion" (
     "typ" TEXT,
     "betrag" NUMERIC NOT NULL,
     "kategorie" TEXT,
+    "beschreibung" TEXT,
     "benutzer_id" BIGINT REFERENCES "Benutzer"("id") ON DELETE CASCADE NOT NULL,
     "budget_id" BIGINT REFERENCES "Budget"("id") ON DELETE CASCADE
 );
