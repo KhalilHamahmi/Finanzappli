@@ -7,8 +7,10 @@ const router = useRouter()
 
 const email = ref('')
 const password = ref('')
+const fehler = ref('')
 
 const handleLogin = async () => {
+  fehler.value = ''
 
   const { error } = await supabase.auth.signInWithPassword({
     email: email.value,
@@ -16,7 +18,11 @@ const handleLogin = async () => {
   })
 
   if (error) {
-    alert(error.message)
+    if (/Invalid login credentials/i.test(error.message)) {
+      fehler.value = 'E-Mail oder Passwort ist falsch.'
+    } else {
+      fehler.value = error.message
+    }
     return
   }
 
@@ -37,17 +43,17 @@ const handleLogin = async () => {
 
       <form @submit.prevent="handleLogin">
 
-        <label>E-Mail</label>
-        <input
-            type="email"
-            v-model="email"
-            placeholder="E-Mail eingeben"
-        />
+        <div class="input-group">
+          <label>E-Mail</label>
+          <input type="email" v-model="email" placeholder="E-Mail eingeben" />
+        </div>
 
         <div class="input-group">
           <label>Passwort</label>
           <input type="password" v-model="password" placeholder="Passwort eingeben" />
         </div>
+
+        <p v-if="fehler" class="error-box">{{ fehler }}</p>
 
         <button type="submit">
           Anmelden
@@ -140,5 +146,17 @@ button {
 
 button:hover {
   background: #1d4ed8;
+}
+
+.error-box {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: center;
 }
 </style>
