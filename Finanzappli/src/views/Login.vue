@@ -1,15 +1,26 @@
 <script setup>
 import { ref } from 'vue'
 import { supabase } from '../supabase'
+import { useRouter } from 'vue-router'
 
-const username = ref('')
+const router = useRouter()
+
+const email = ref('')
 const password = ref('')
 
 const handleLogin = async () => {
-  await supabase.auth.signInWithPassword({
-    email: username.value,
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email: email.value,
     password: password.value,
   })
+
+  if (error) {
+    alert(error.message)
+    return
+  }
+
+  router.push('/main')
 }
 </script>
 
@@ -26,10 +37,12 @@ const handleLogin = async () => {
 
       <form @submit.prevent="handleLogin">
 
-        <div class="input-group">
-          <label>Benutzername</label>
-          <input type="text" v-model="username" placeholder="Benutzername eingeben" />
-        </div>
+        <label>E-Mail</label>
+        <input
+            type="email"
+            v-model="email"
+            placeholder="E-Mail eingeben"
+        />
 
         <div class="input-group">
           <label>Passwort</label>
@@ -38,6 +51,14 @@ const handleLogin = async () => {
 
         <button type="submit">
           Anmelden
+        </button>
+
+        <button
+            type="button"
+            style="margin-top:15px"
+            @click="$router.push('/register')"
+        >
+          Noch kein Konto?
         </button>
 
       </form>
