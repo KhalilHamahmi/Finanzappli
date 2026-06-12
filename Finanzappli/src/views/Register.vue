@@ -3,20 +3,45 @@ import { ref } from 'vue'
 import { supabase } from '../supabase'
 import { useRouter } from 'vue-router'
 
-const username = ref('')
+const router = useRouter()
+
+const vorname = ref('')
 const email = ref('')
 const password = ref('')
+const kanton = ref('')
+const grossregionId = ref(null)
 
 const handleRegister = async () => {
-  await supabase.auth.signUp({
+
+  const { data, error } = await supabase.auth.signUp({
     email: email.value,
     password: password.value,
-    options: {
-      data: {
-        username: username.value
-      }
-    }
   })
+
+  if (error) {
+    alert(error.message)
+    return
+  }
+
+  const { error: dbError } = await supabase
+      .from('Benutzer')
+      .insert([
+        {
+          vorname: vorname.value,
+          email: email.value,
+          kanton: kanton.value,
+          grossregion_id: grossregionId.value
+        }
+      ])
+
+  if (dbError) {
+    alert(dbError.message)
+    return
+  }
+
+  alert("Registrierung erfolgreich!")
+
+  router.push('/login')
 }
 </script>
 
@@ -39,20 +64,54 @@ const handleRegister = async () => {
         </div>
 
         <div class="input-group">
+          <label>Vorname</label>
+          <input
+              type="text"
+              v-model="vorname"
+              placeholder="Vorname eingeben"
+          />
+        </div>
+
+        <div class="input-group">
           <label>E-Mail</label>
           <input type="email" v-model="email" placeholder="E-Mail eingeben" />
         </div>
+
+
 
         <div class="input-group">
           <label>Passwort</label>
           <input type="password" v-model="password" placeholder="Passwort eingeben" />
         </div>
 
+        <div class="input-group">
+          <label>Kanton</label>
+          <input
+              type="text"
+              v-model="kanton"
+              placeholder="Kanton eingeben"
+          />
+        </div>
+
+        <div class="input-group">
+          <label>Grossregion ID</label>
+          <input
+              type="number"
+              v-model="grossregionId"
+              placeholder="z.B. 1"
+          />
+        </div>
+
+
         <button type="submit">
           Registrieren
         </button>
 
-        <button type="submit" style="margin-top: 15px; ">
+        <button
+            type="button"
+            style="margin-top: 15px;"
+            @click="$router.push('/login')"
+        >
          <router-link to="/login" style="color: white; text-decoration: none;">
           Bereits ein Konto? Anmelden
           </router-link>
