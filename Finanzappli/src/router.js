@@ -6,6 +6,7 @@ import Register from './views/Register.vue'
 import Quiz from './views/quiz.vue'
 import grossregionvergleich from "./views/GrossRegionVergleich.vue";
 import InvestmentRechner from "./views/InvestmentRechner.vue";
+import Tipps from "./views/Tipps.vue";
 import { supabase } from './supabase'
 
 const routes = [
@@ -16,6 +17,8 @@ const routes = [
     { path: '/quiz', name: 'Quiz', component: Quiz, meta: { requiresAuth: true } },
     { path: '/grossregionvergleich', name: 'grossregionvergleich', component: grossregionvergleich, meta: { requiresAuth: true } },
     { path: '/investmentrechner', name: 'InvestmentRechner', component: InvestmentRechner, meta: { requiresAuth: true } },
+    { path: '/tipps', name: 'Tipps', component: Tipps, meta: { requiresAuth: true } },
+
 ]
 
 const router = createRouter({
