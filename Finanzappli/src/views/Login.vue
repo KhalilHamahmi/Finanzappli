@@ -20,7 +20,7 @@ const handleLogin = async () => {
     return
   }
 
-  router.push('/main')
+  router.push('/quiz')
 }
 </script>
 
